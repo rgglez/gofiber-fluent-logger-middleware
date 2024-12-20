@@ -17,6 +17,7 @@ limitations under the License.
 */
 
 import (
+	"fmt"
 	"time"
 
 	"runtime/debug"
@@ -29,6 +30,7 @@ import (
 //*****************************************************************************
 
 type LoggerConfig struct {
+	Enabled bool // whether the middleware is enabled
 	Host string // the fluentd server address
 	Port int    // the fluentd server port
 	Tag  string // the tag to be used for the messages
@@ -46,6 +48,10 @@ type Logger struct {
 
 // New initializes a Fluentd logger and returns a middleware
 func New(config LoggerConfig) (*Logger, error) {
+	if !config.Enabled {
+		return nil, fmt.Errorf("middleware disabled")
+	}
+
 	// Initialize Fluentd logger
 	fluentLogger, err := fluent.New(fluent.Config{
 		FluentHost: config.Host,
