@@ -1,4 +1,4 @@
-module github.com/rgglez/gofiber-fluent-middleware
+module github.com/rgglez/gofiber-fluent-logger-middleware
 
 go 1.23.2
 
