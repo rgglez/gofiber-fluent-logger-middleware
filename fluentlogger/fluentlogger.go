@@ -1,4 +1,4 @@
-package fiberfluentdlogger
+package fluentlogger
 
 /*
 Copyright 2024 Rodolfo González González
@@ -124,7 +124,7 @@ func (l *Logger) PanicLogger(c *fiber.Ctx, r interface{}) {
 		logData["stacktrace"] = string(debug.Stack())
 
 		// Send to Fluentd
-		if err := l.client.Post(l.tag + ".panic", logData); err != nil {
+		if err := l.client.Post(l.tag+".panic", logData); err != nil {
 			tracerr.PrintSource(err)
 		}
 	}
