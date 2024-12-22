@@ -46,6 +46,19 @@ type Logger struct {
 
 //-----------------------------------------------------------------------------
 
+func generateTimekey() string {
+	// Get current time
+	now := time.Now()
+
+	// Format time according to your desired granularity
+	// Example: 1-minute granularity
+	timekey := now.Format("2006-01-02T15:04")
+
+	return timekey
+}
+
+//-----------------------------------------------------------------------------
+
 /**
  * New initializes a Fluentd logger and returns a middleware
  */
@@ -82,6 +95,7 @@ func (l *Logger) Logger() fiber.Handler {
 				"client_ip":     c.IP(),
 				"user_agent":    c.Get("User-Agent"),
 				"response_size": len(c.Response().Body()),
+				"time_key":      generateTimekey(),
 			}
 			if err != nil {
 				logData["error"] = tracerr.SprintSource(err)
@@ -113,6 +127,7 @@ func (l *Logger) PanicLogger(c *fiber.Ctx, r interface{}) {
 			"path":       c.Path(),
 			"client_ip":  c.IP(),
 			"user_agent": c.Get("User-Agent"),
+			"time_key":   generateTimekey(),
 		}
 
 		// Optionally, include the details of the error
