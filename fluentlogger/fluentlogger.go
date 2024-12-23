@@ -155,11 +155,13 @@ func (l *Logger) PanicLogger(c *fiber.Ctx, r interface{}) {
  * safePostToFluentd safely attempts to send the log to Fluentd.
  */
 func (l *Logger) safePostToFluentd(data map[string]interface{}) error {
-	// Attempt to post to Fluentd with a timeout.
-	err := l.client.Post(l.tag, data)
-	if err != nil {
-		// Fluentd is unreachable, return the error.
-		return err
+	if l.client != nil {
+		// Attempt to post to Fluentd with a timeout.
+		err := l.client.Post(l.tag, data)
+		if err != nil {
+			// Fluentd is unreachable, return the error.
+			return err
+		}
 	}
 	return nil
 }
