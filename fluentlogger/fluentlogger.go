@@ -22,7 +22,6 @@ import (
 
 	"github.com/fluent/fluent-logger-golang/fluent"
 	fiber "github.com/gofiber/fiber/v2"
-	"github.com/kr/pretty"
 	"github.com/ztrue/tracerr"
 )
 
@@ -67,8 +66,6 @@ func (l *Logger) Logger() fiber.Handler {
 		start := time.Now()
 		err := c.Next() // Process the request
 		latency := time.Since(start)
-
-		pretty.Println(l.client)
 
 		if l.enabled && l.client != nil {
 			// Log data to Fluentd
