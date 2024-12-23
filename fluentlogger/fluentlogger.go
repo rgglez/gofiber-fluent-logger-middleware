@@ -24,6 +24,7 @@ import (
 
 	"github.com/fluent/fluent-logger-golang/fluent"
 	fiber "github.com/gofiber/fiber/v2"
+	"github.com/kr/pretty"
 	"github.com/ztrue/tracerr"
 )
 
@@ -63,12 +64,12 @@ func generateTimekey() string {
 /**
  * New initializes a Fluentd logger and returns a middleware
  */
-func New(config LoggerConfig, client *fluent.Fluent) (*Logger, error) {
+func New(config LoggerConfig, client *fluent.Fluent) *Logger {
 	return &Logger{
 		client:  client,
 		tag:     config.Tag,
 		enabled: config.Enabled,
-	}, nil
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -81,6 +82,8 @@ func (l *Logger) Logger() fiber.Handler {
 		start := time.Now()
 		err := c.Next() // Process the request
 		latency := time.Since(start)
+
+		pretty.Println(l.client)
 
 		if l.enabled && l.client != nil {
 			// Log data to Fluentd
