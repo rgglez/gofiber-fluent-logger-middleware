@@ -98,9 +98,9 @@ func (l *Logger) Logger() fiber.Handler {
 			"response_size": len(c.Response().Body()),
 			"time_key":      generateTimekey(),
 		}
-		if err != nil {
+		/*if err != nil {
 			logData["error"] = tracerr.SprintSource(err)
-		}
+		}*/
 
 		// Send the log to Fluentd asynchronously in a goroutine.
 		go func() {
