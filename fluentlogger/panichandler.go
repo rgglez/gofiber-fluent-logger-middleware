@@ -1,9 +1,11 @@
 package fluentlogger
 
 import (
+	"log"
 	"runtime/debug"
-	"github.com/ztrue/tracerr"
+
 	fiber "github.com/gofiber/fiber/v2"
+	"github.com/ztrue/tracerr"
 )
 
 //-----------------------------------------------------------------------------
@@ -26,16 +28,22 @@ import (
 		}
 
 		// Optionally, include the details of the error
-		//if err, ok := r.(error); !ok {
-		//	logData["error"] = tracerr.SprintSource(err)
-		//}
+		if err, ok := r.(error); !ok {
+			logData["error"] = tracerr.SprintSource(err)
+		}
 
 		// Include stack trace if err is a panic
 		logData["stacktrace"] = string(debug.Stack())
 
-		// Send to Fluentd
-		if err := l.client.Post(l.tag+".panic", logData); err != nil {
-			tracerr.PrintSource(err)
-		}
+		// Send the log to Fluentd asynchronously in a goroutine.
+		go func() {
+			// Safely attempt to post to Fluentd.
+			if postErr := l.safePostToFluentd(l.tag+".panic", logData); postErr != nil {
+				// If Fluentd fails, fallback to logging to console (or file).
+				log.Printf("Fluentd log failed: %v, using fallback mechanism.", postErr)
+			}
+		}()
+	} else {
+		log.Printf("Panic occurred but no logger available: %v", r)
 	}
 }
