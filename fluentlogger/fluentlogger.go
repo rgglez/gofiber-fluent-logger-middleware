@@ -64,10 +64,6 @@ func generateTimekey() string {
  * New initializes a Fluentd logger and returns a middleware
  */
 func New(config LoggerConfig, client *fluent.Fluent) (*Logger, error) {
-	if !config.Enabled {
-		return nil, nil
-	}
-
 	return &Logger{
 		client:  client,
 		tag:     config.Tag,
@@ -86,31 +82,31 @@ func (l *Logger) Logger() fiber.Handler {
 		err := c.Next() // Process the request
 		latency := time.Since(start)
 
-		//if l.enabled {
-		// Log data to Fluentd
-		logData := map[string]interface{}{
-			"method":        c.Method(),
-			"path":          c.Path(),
-			"status":        c.Response().StatusCode(),
-			"latency_ms":    latency.Milliseconds(),
-			"client_ip":     c.IP(),
-			"user_agent":    c.Get("User-Agent"),
-			"response_size": len(c.Response().Body()),
-			"time_key":      generateTimekey(),
-		}
-		/*if err != nil {
-			logData["error"] = tracerr.SprintSource(err)
-		}*/
-
-		// Send the log to Fluentd asynchronously in a goroutine.
-		go func() {
-			// Safely attempt to post to Fluentd.
-			if postErr := l.safePostToFluentd(logData); postErr != nil {
-				// If Fluentd fails, fallback to logging to console (or file).
-				log.Printf("Fluentd log failed: %v, using fallback mechanism.", postErr)
+		if l.enabled && l.client != nil {
+			// Log data to Fluentd
+			logData := map[string]interface{}{
+				"method":        c.Method(),
+				"path":          c.Path(),
+				"status":        c.Response().StatusCode(),
+				"latency_ms":    latency.Milliseconds(),
+				"client_ip":     c.IP(),
+				"user_agent":    c.Get("User-Agent"),
+				"response_size": len(c.Response().Body()),
+				"time_key":      generateTimekey(),
 			}
-		}()
-		//}
+			if err != nil {
+				logData["error"] = tracerr.SprintSource(err)
+			}
+
+			// Send the log to Fluentd asynchronously in a goroutine.
+			go func() {
+				// Safely attempt to post to Fluentd.
+				if postErr := l.safePostToFluentd(logData); postErr != nil {
+					// If Fluentd fails, fallback to logging to console (or file).
+					log.Printf("Fluentd log failed: %v, using fallback mechanism.", postErr)
+				}
+			}()
+		}
 
 		return err
 	}
@@ -126,7 +122,7 @@ func (l *Logger) Logger() fiber.Handler {
  * e the error
  */
 func (l *Logger) PanicLogger(c *fiber.Ctx, r interface{}) {
-	if l.enabled {
+	if l.enabled && l.client != nil {
 		logData := map[string]interface{}{
 			"method":     c.Method(),
 			"path":       c.Path(),
