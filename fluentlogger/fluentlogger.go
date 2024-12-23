@@ -17,6 +17,7 @@ limitations under the License.
 */
 
 import (
+	"log"
 	"time"
 
 	"runtime/debug"
@@ -101,10 +102,20 @@ func (l *Logger) Logger() fiber.Handler {
 				logData["error"] = tracerr.SprintSource(err)
 			}
 
-			// Send to Fluentd
-			if err := l.client.Post(l.tag, logData); err != nil {
+			// Send the log to Fluentd asynchronously in a goroutine.
+			go func() {
+				// Safely attempt to post to Fluentd.
+				if postErr := l.safePostToFluentd(logData); postErr != nil {
+					// If Fluentd fails, fallback to logging to console (or file).
+					log.Printf("Fluentd log failed: %v, using fallback mechanism.", postErr)
+					// Optionally, log the message locally in case of failure.
+					l.fallbackLog(logData)
+				}
+			}()
+
+			/*if err := l.client.Post(l.tag, logData); err != nil {
 				tracerr.PrintSource(err)
-			}
+			}*/
 		}
 
 		return err
@@ -131,9 +142,9 @@ func (l *Logger) PanicLogger(c *fiber.Ctx, r interface{}) {
 		}
 
 		// Optionally, include the details of the error
-		if err, ok := r.(error); !ok {
-			logData["error"] = tracerr.SprintSource(err)
-		}
+		//if err, ok := r.(error); !ok {
+		//	logData["error"] = tracerr.SprintSource(err)
+		//}
 
 		// Include stack trace if err is a panic
 		logData["stacktrace"] = string(debug.Stack())
@@ -143,4 +154,22 @@ func (l *Logger) PanicLogger(c *fiber.Ctx, r interface{}) {
 			tracerr.PrintSource(err)
 		}
 	}
+}
+
+//-----------------------------------------------------------------------------
+
+// safePostToFluentd safely attempts to send the log to Fluentd.
+func (l *Logger) safePostToFluentd(data map[string]interface{}) error {
+	// Attempt to post to Fluentd with a timeout.
+	err := l.client.Post(l.tag, data)
+	if err != nil {
+		// Fluentd is unreachable, return the error.
+		return err
+	}
+	return nil
+}
+
+// fallbackLog logs the data locally, or you can implement another logging mechanism.
+func (l *Logger) fallbackLog(data map[string]interface{}) {
+	log.Print(data)
 }
