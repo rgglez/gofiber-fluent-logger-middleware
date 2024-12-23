@@ -20,8 +20,6 @@ import (
 	"log"
 	"time"
 
-	"runtime/debug"
-
 	"github.com/fluent/fluent-logger-golang/fluent"
 	fiber "github.com/gofiber/fiber/v2"
 	"github.com/kr/pretty"
@@ -44,19 +42,6 @@ type Logger struct {
 	client  *fluent.Fluent
 	tag     string
 	enabled bool
-}
-
-//-----------------------------------------------------------------------------
-
-func generateTimekey() string {
-	// Get current time
-	now := time.Now()
-
-	// Format time according to your desired granularity
-	// Example: 1-minute granularity
-	timekey := now.Format("2006-01-02T15:04")
-
-	return timekey
 }
 
 //-----------------------------------------------------------------------------
@@ -118,50 +103,15 @@ func (l *Logger) Logger() fiber.Handler {
 //-----------------------------------------------------------------------------
 
 /**
- * PanicLogger logs details on panic to Fluentd. It is intended to be used as a
- * StackTraceHandler for GoFiber's recover.
- *
- * c the context
- * e the error
- */
-func (l *Logger) PanicLogger(c *fiber.Ctx, r interface{}) {
-	if l.enabled && l.client != nil {
-		logData := map[string]interface{}{
-			"method":     c.Method(),
-			"path":       c.Path(),
-			"client_ip":  c.IP(),
-			"user_agent": c.Get("User-Agent"),
-			"time_key":   generateTimekey(),
-		}
-
-		// Optionally, include the details of the error
-		//if err, ok := r.(error); !ok {
-		//	logData["error"] = tracerr.SprintSource(err)
-		//}
-
-		// Include stack trace if err is a panic
-		logData["stacktrace"] = string(debug.Stack())
-
-		// Send to Fluentd
-		if err := l.client.Post(l.tag+".panic", logData); err != nil {
-			tracerr.PrintSource(err)
-		}
-	}
-}
-
-//-----------------------------------------------------------------------------
-
-/**
  * safePostToFluentd safely attempts to send the log to Fluentd.
  */
 func (l *Logger) safePostToFluentd(data map[string]interface{}) error {
-	if l.client != nil {
-		// Attempt to post to Fluentd with a timeout.
-		err := l.client.Post(l.tag, data)
-		if err != nil {
-			// Fluentd is unreachable, return the error.
-			return err
-		}
+	// Attempt to post to Fluentd with a timeout.
+	err := l.client.Post(l.tag, data)
+	if err != nil {
+		// Fluentd is unreachable, return the error.
+		return err
 	}
+
 	return nil
 }
