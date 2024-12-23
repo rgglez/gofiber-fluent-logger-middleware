@@ -108,14 +108,8 @@ func (l *Logger) Logger() fiber.Handler {
 				if postErr := l.safePostToFluentd(logData); postErr != nil {
 					// If Fluentd fails, fallback to logging to console (or file).
 					log.Printf("Fluentd log failed: %v, using fallback mechanism.", postErr)
-					// Optionally, log the message locally in case of failure.
-					l.fallbackLog(logData)
 				}
 			}()
-
-			/*if err := l.client.Post(l.tag, logData); err != nil {
-				tracerr.PrintSource(err)
-			}*/
 		}
 
 		return err
@@ -158,7 +152,9 @@ func (l *Logger) PanicLogger(c *fiber.Ctx, r interface{}) {
 
 //-----------------------------------------------------------------------------
 
-// safePostToFluentd safely attempts to send the log to Fluentd.
+/**
+ * safePostToFluentd safely attempts to send the log to Fluentd.
+ */
 func (l *Logger) safePostToFluentd(data map[string]interface{}) error {
 	// Attempt to post to Fluentd with a timeout.
 	err := l.client.Post(l.tag, data)
@@ -167,9 +163,4 @@ func (l *Logger) safePostToFluentd(data map[string]interface{}) error {
 		return err
 	}
 	return nil
-}
-
-// fallbackLog logs the data locally, or you can implement another logging mechanism.
-func (l *Logger) fallbackLog(data map[string]interface{}) {
-	log.Print(data)
 }
